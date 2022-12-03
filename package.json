@@ -1,0 +1,23 @@
+{
+  "name": "crawlphonenumber",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/nguyenduy7474/crawl-phone-number.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/nguyenduy7474/crawl-phone-number/issues"
+  },
+  "homepage": "https://gitlab.com/nguyenduy7474/crawl-phone-number#readme",
+  "dependencies": {
+    "exceljs": "^4.3.0",
+    "puppeteer": "^19.0.0"
+  }
+}
