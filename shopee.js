@@ -1,15 +1,8 @@
 const puppeteer = require('puppeteer');
 const ExcelJS = require('exceljs');
+
 const KEY_WORD = 'sen đá';
-let listExcel = [{
-    "Tên Shop": '',
-    "Số điện thoại": '',
-    "Email": '',
-    "Link Web": '',
-    "Khu vực": '',
-    "Địa chỉ": '',
-    "Link Sản phẩm": ''
-}];
+
 const removeVietnameseTones = (str) => {
     str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
     str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
@@ -43,12 +36,28 @@ const waitFor = async (time) => {
     await new Promise(r => setTimeout(r, time));
 }
 const writeFileExcel = (nameFile, data) => {
-    return new Promise(async (resolve,reject) => {
+    return new Promise(async (resolve, reject) => {
         try {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('My Sheet');
-            const r3 = worksheet.getColumn(1);
-            r3.values = data
+            const HEARDER = worksheet.getRow(1);
+            HEARDER.values = [
+                "Tên Shop",
+                "Số điện thoại",
+                "Email",
+                "Link Web",
+                "Khu vực",
+                "Địa chỉ",
+                "Link Sản phẩm",
+            ]
+            for (let i = 0; i < data.length; i++) {
+                console.dir(data[i])
+                worksheet.getCell(`A${i+2}`).value = data[i].nameShop;
+                worksheet.getCell(`D${i+2}`).value = data[i].linkShop;
+                worksheet.getCell(`E${i+2}`).value = data[i].from;
+                worksheet.getCell(`G${i+2}`).value = data[i].linkProduct.toString().replace(/,/g, "\r\n");
+            }
+
             workbook.xlsx
                 .writeFile(`./${nameFile}_shopee.xlsx`)
                 .then(() => {
@@ -75,14 +84,7 @@ const readFileExcel = (nameFile) => {
     });
 };
 
-// const readFileExcel = async (collumn) => {
-//   await workbook.xlsx.readFile("./thongtinsendo.xlsx");
-//   const worksheet = workbook.getWorksheet("Sheet1");
-//   let listShopName = worksheet.getColumn(collumn).values;
-//   listShopName.shift()
-//   listShopName.shift()
-//   return listShopName
-// }
+
 
 const runShopee = async () => {
     let keyword = removeVietnameseTones(KEY_WORD);
@@ -101,30 +103,78 @@ const runShopee = async () => {
     ]
     const pages = await browser.pages();
     const page = pages[0];
+    //await installMouseHelper(page);
     await page.goto(listAddress[0], { waitUntil: "networkidle2" });
+
     let dataList = await page.evaluate(async () => {
-        let dataList = []
+        let linkList = []
         let listProduct = document.getElementsByClassName("shopee-search-item-result__items")[0].children
         await new Promise(r => setTimeout(r, 3000));
 
-        console.log(listProduct)
+
         for (let j = 0; j < listProduct.length; j++) {
             let data = listProduct[j].children[0].href
-            await new Promise(r => setTimeout(r, 200));
-            dataList.push(data)
+            while (data == null) {
+                window.scrollTo(0, 1000);
+                await new Promise(r => setTimeout(r, 500));
+                window.scrollTo(0, 2000);
+                await new Promise(r => setTimeout(r, 500));
+                window.scrollTo(0, 3000);
+                await new Promise(r => setTimeout(r, 500));
+                window.scrollTo(0, 4000);
+                await new Promise(r => setTimeout(r, 500));
+                data = listProduct[j].children[0].href
+            }
+            linkList.push(data)
         }
         document.getElementsByClassName("shopee-button-no-outline")[0].click()
         await new Promise(r => setTimeout(r, 3000));
         listProduct = document.getElementsByClassName("shopee-search-item-result__items")[0].children
         for (let j = 0; j < listProduct.length; j++) {
             let data = listProduct[j].children[0].href
-            await new Promise(r => setTimeout(r, 200));
-            dataList.push(data)
+            while (data == null) {
+                window.scrollTo(0, 1000);
+                await new Promise(r => setTimeout(r, 500));
+                window.scrollTo(0, 2000);
+                await new Promise(r => setTimeout(r, 500));
+                window.scrollTo(0, 3000);
+                await new Promise(r => setTimeout(r, 500));
+                window.scrollTo(0, 4000);
+                await new Promise(r => setTimeout(r, 500));
+                data = listProduct[j].children[0].href
+            }
+            linkList.push(data)
         }
-        return dataList
+        return linkList
     });
-    console.log(dataList)
-    writeFileExcel(keyword,dataList)
+    //console.log(dataList)
+
+    let dataFindByLink = [];
+    for (let i = 0; i < 10; i++) {
+        await page.goto(dataList[i], { waitUntil: "networkidle2" });
+        let data = await page.evaluate(async () => {
+            window.scrollTo(0, 1000);
+            let nameShop = document.getElementsByClassName("page-product__shop")[0].children[0].children[1].children[0].textContent;
+            let linkShop = document.getElementsByClassName("page-product__shop")[0].children[0].children[1].children[2].children[1].href.split('?')[0]
+            let elements = Array.from(document.querySelectorAll('label'));
+            let match = elements.find(item => {
+                return item.textContent.includes("Gửi từ");
+            });
+            let from = match.parentElement.children[1].textContent
+            return { nameShop, linkShop, from }
+        });
+        if (i == 0) {
+            dataFindByLink.push({ nameShop: data.nameShop, linkShop: data.linkShop, from: data.from, linkProduct: [dataList[i].split('?')[0]] })
+        } else {
+            let index = dataFindByLink.findIndex(item => item.nameShop == data.nameShop)
+            if (index == -1) dataFindByLink.push({ nameShop: data.nameShop, linkShop: data.linkShop, from: data.from, linkProduct: [dataList[i].split('?')[0]] })
+            else dataFindByLink[index].linkProduct.push(dataList[i].split('?')[0])
+        }
+
+    }
+
+    writeFileExcel(keyword, dataFindByLink)
     //browser.close();
 }
 runShopee()
+//writeFileExcel("senda", [])
