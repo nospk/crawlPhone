@@ -210,10 +210,10 @@ const runShopee = async () => {
                 if (index == -1) dataFindByLink.push({ nameShop: data.nameShop, linkShop: data.linkShop, from: data.from, linkProduct: [listProductCrawlLinks[i]] })
                 else dataFindByLink[index].linkProduct.push(listProductCrawlLinks[i])
             }
-
+            writeFileExcel(keyword, dataFindByLink)
         }
 
-        writeFileExcel(keyword, dataFindByLink)
+        
     } catch (error) {
         console.log(error)
     }

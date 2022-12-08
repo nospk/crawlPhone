@@ -1,0 +1,75 @@
+<!--index.html-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+    <link rel="stylesheet" href="./src/bootstrap/css/bootstrap.min.css" />
+    <script src="./src/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <title>APP NOMI</title>
+</head>
+
+<body>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="mt-2">
+                <div class="input-group">
+                    <select class="btn btn-primary" id="typeRun">
+                        <option value="false" selected>Nền tảng</option>
+                        <option value="shopee">Shopee</option>
+                    </select>
+                    <input type="text" class="form-control" id="keyword" placeholder="Từ khóa">
+                    <button class="btn btn-success" id="buttonRun" type="button">Chạy</button>
+                    <button class="btn btn-danger d-none" id="buttonStop" type="button">Dừng</button>
+                </div>
+            </div>
+            <div class="mt-2 row">
+                <div class="col">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Delay Min</span>
+                        <input type="number" min="0" value="0" id="delayMin" class="form-control">
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Delay Max</span>
+                        <input type="number" class="form-control" min="0" value="0" id="delayMax">
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Page Max</span>
+                        <input type="number" value="1" min="1" id="pageMax" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-2 row">
+                <div class="col">
+                    <label class="float-start">Trạng thái</label> <span class="float-end" id="status">Không Hoạt
+                        Động</span><br>
+                    <label class="float-start">Tổng shop</label> <span class="float-end" id="shopNumber">0</span>
+                </div>
+                <div class="col">
+                    <label class="float-start">Sản phẩm</label> <span class="float-end" id="productNumber">0</span><br>
+                    <label class="float-start">Page</label> <span class="float-end" id="pageNumber">0</span>
+                </div>
+            </div>
+            <div class="mt-2">
+                <textarea class="form-control h-50" id="logs" disabled rows="10"></textarea>
+            </div>
+
+        </div>
+
+        </div>
+        <!-- /.container-fluid -->
+    </section>
+
+    <!-- You can also require other files to run in this process -->
+
+</body>
+<script src="src/script/index.js"></script>
+
+</html>
