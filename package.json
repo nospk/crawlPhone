@@ -1,7 +1,7 @@
 {
   "name": "crawlphonenumber",
   "version": "1.0.0",
-  "description": "",
+  "description": "tool crawl",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -19,7 +19,6 @@
   },
   "homepage": "https://gitlab.com/nguyenduy7474/crawl-phone-number#readme",
   "dependencies": {
-    "electron-root-path": "^1.1.0",
     "exceljs": "^4.3.0",
     "puppeteer": "^19.0.0"
   },

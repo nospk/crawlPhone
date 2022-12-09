@@ -1,20 +1,20 @@
 const puppeteer = require('puppeteer');
 const ExcelJS = require('exceljs');
 const Common = require('./common');
-const rootPath = require('electron-root-path').rootPath;
-const path = require('path')
+const path = require('path');
+
 class Shopee {
     dataList = [];
     browser;
     browserPage;
     browserProduct;
     currentPage = 0;
-    constructor(keyword, delayMin, delayMax, pageMax, mainWindow) {
+    constructor(keyword, delayMin, delayMax, pageMax, dirFile) {
         this.keyword = keyword;
         this.delayMin = delayMin;
         this.delayMax = delayMax;
         this.pageMax = pageMax;
-        this.mainWindow = mainWindow;
+        this.dirFile = dirFile
     }
     readDataList() {
         return this.dataList.length + ' ' + this.listProductCrawled.length;
@@ -22,7 +22,7 @@ class Shopee {
     readFileExcel() {
         return new Promise(async (resolve) => {
             try {
-                const pathExcel = path.join(rootPath, `./result/${this.keyword}_shopee.xlsx`);
+                const pathExcel = path.join(this.dirFile, `./${this.keyword}_shopee.xlsx`);
                 const workbook = new ExcelJS.Workbook();
                 let data = await workbook.xlsx.readFile(pathExcel);
                 let worksheet = data.getWorksheet("My Sheet")
@@ -35,7 +35,6 @@ class Shopee {
                 this.dataList = dataList
                 resolve()
             } catch (e) {
-                console.log(e)
                 resolve()
             }
         });
@@ -43,7 +42,7 @@ class Shopee {
     writeFileExcel() {
         return new Promise(async (resolve, reject) => {
             try {
-                const pathExcel = path.join(rootPath, `./result/${this.keyword}_shopee.xlsx`);
+                const pathExcel = path.join(this.dirFile, `./${this.keyword}_shopee.xlsx`);
                 let data = this.dataList
                 const workbook = new ExcelJS.Workbook();
                 const worksheet = workbook.addWorksheet('My Sheet');

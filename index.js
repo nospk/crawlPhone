@@ -3,22 +3,24 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const fs = require('fs');
-const rootPath = require('electron-root-path').rootPath;
 const path = require('path');
 const Shopee = require('./core/shopee')
 const Common = require('./core/common');
 let mainWindow
 let running = true;
-const dir = path.join(rootPath, './result');
-console.log(dir)
-if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir);
+
+
+
+const dirFile = path.join(app.getAppPath(), './result');
+
+if (!fs.existsSync(dirFile)) {
+  fs.mkdirSync(dirFile);
 }
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 500,
+    width: 900,
+    height: 520,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, './preload.js'),
@@ -88,13 +90,17 @@ ipcMain.on("stopCrawl", async (event, args) => {
   }
 
 });
+ipcMain.on("openFolder", async (event, args) => {
+  require('child_process').exec(`explorer.exe "${dirFile}"`);
+});
+
 const stopShopee = () => {
   running = false;
 }
 const runTypeShopee = async (keyword, delayMin, delayMax, pageMax) => {
   running = true;
   let keyWordRemoveTons = Common.removeVietnameseTones(keyword);
-  const shopee = new Shopee(keyWordRemoveTons, delayMin, delayMax, pageMax);
+  const shopee = new Shopee(keyWordRemoveTons, delayMin, delayMax, pageMax, dirFile);
   try {
     await shopee.readFileExcel()
     mainWindow.webContents.send("notification-running", "Open file");

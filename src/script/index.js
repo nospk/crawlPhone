@@ -1,6 +1,9 @@
 document.getElementById("buttonRun").addEventListener("click", runCrawl);
 document.getElementById("buttonStop").addEventListener("click", stopCrawl);
-
+document.getElementById("buttonOpenFolder").addEventListener("click", openFolder);
+function openFolder() {
+    window.api.send("openFolder","");
+}
 function stopCrawl() {
     let typeRun = document.getElementById("typeRun").value;
     window.api.send("stopCrawl", { typeRun });
