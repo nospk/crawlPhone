@@ -11,8 +11,7 @@ let running = true;
 
 
 
-const dirFile = path.join(app.getAppPath(), './result');
-
+const dirFile = path.join(app.getPath('userData'), './result');
 if (!fs.existsSync(dirFile)) {
   fs.mkdirSync(dirFile);
 }
