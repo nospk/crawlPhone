@@ -2,10 +2,18 @@
 
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
-const path = require('path')
+const fs = require('fs');
+const rootPath = require('electron-root-path').rootPath;
+const path = require('path');
 const Shopee = require('./core/shopee')
 const Common = require('./core/common');
-let mainWindow 
+let mainWindow
+let running = true;
+const dir = path.join(rootPath, './result');
+console.log(dir)
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir);
+}
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -24,7 +32,7 @@ const createWindow = () => {
   mainWindow.loadFile('./index.html')
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  //mainWindow.webContents.openDevTools()
 }
 
 // This method will be called when Electron has finished
@@ -55,7 +63,7 @@ ipcMain.on("runCrawl", async (event, args) => {
     let { typeRun, keyword, delayMin, delayMax, pageMax } = args
     if (typeRun == "false") throw "Chưa chọn nền tảng"
     if (keyword == "") throw "Chưa nhập từ khóa"
-    switch(typeRun){
+    switch (typeRun) {
       case "shopee":
         runTypeShopee(keyword, delayMin, delayMax, pageMax)
         break;
@@ -66,11 +74,66 @@ ipcMain.on("runCrawl", async (event, args) => {
   }
 
 });
+ipcMain.on("stopCrawl", async (event, args) => {
+  try {
+    let { typeRun } = args
+    switch (typeRun) {
+      case "shopee":
+        stopShopee()
+        break;
+    }
+  } catch (err) {
+    dialog.showErrorBox("Lỗi", "Vui lòng kiểm tra")
+    mainWindow.webContents.send("notification-error", err);
+  }
 
-const runTypeShopee = async(keyword, delayMin, delayMax, pageMax) =>{
+});
+const stopShopee = () => {
+  running = false;
+}
+const runTypeShopee = async (keyword, delayMin, delayMax, pageMax) => {
+  running = true;
   let keyWordRemoveTons = Common.removeVietnameseTones(keyword);
   const shopee = new Shopee(keyWordRemoveTons, delayMin, delayMax, pageMax);
-  await shopee.readFileExcel()
-  await shopee.openChrome()
-  await shopee.loginShopee()
+  try {
+    await shopee.readFileExcel()
+    mainWindow.webContents.send("notification-running", "Open file");
+    await shopee.openChrome()
+    mainWindow.webContents.send("notification-running", "Open chrome");
+    await shopee.loginShopee()
+    mainWindow.webContents.send("notification-running", "Login");
+    await Common.waitFor(5000);
+    while (running && shopee.currentPage < shopee.pageMax) {
+      await shopee.openPage(keyword)
+      mainWindow.webContents.send("notification-running", "Crawl Page " + shopee.currentPage);
+      await Common.waitFor(1000);
+      let crawlItemsInPage = await shopee.getItemsInPage()
+      for (let i = 0; i < crawlItemsInPage.length; i++) {
+        if (running) {
+          mainWindow.webContents.send("notification-status", { status: "Đang hoạt động", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: i });
+          let linkProduct = `https://shopee.vn/${keyWordRemoveTons}-i.${crawlItemsInPage[i].idShop}.${crawlItemsInPage[i].itemId}`
+
+          let index = shopee.dataList.length > 0 ? shopee.dataList.findIndex(item => item.idShop == crawlItemsInPage[i].idShop) : -1;
+          if (index != -1) {
+            shopee.dataList[index].linkProduct.push(linkProduct)
+          } else {
+            let item = await shopee.getInfoItem(crawlItemsInPage[i].itemId, crawlItemsInPage[i].idShop)
+            shopee.dataList.push({ nameShop: item.nameShop, linkShop: item.linkShop, from: item.from, linkProduct: [linkProduct], idShop: crawlItemsInPage[i].idShop })
+            let randomnumber = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+            await Common.waitFor(randomnumber * 1000);
+          }
+          await shopee.writeFileExcel();
+        } else {
+          break;
+        }
+      }
+    }
+    mainWindow.webContents.send("notification-status", { status: "Kết thúc", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: 0 });
+    shopee.browser.close();
+  } catch (err) {
+    dialog.showErrorBox("Lỗi", "Vui lòng kiểm tra")
+    mainWindow.webContents.send("notification-status", { status: "Lỗi", shopNumber: 0, pageNumber: 0, productNumber: 0 });
+    mainWindow.webContents.send("notification-error", err);
+    shopee.browser.close();
+  }
 }

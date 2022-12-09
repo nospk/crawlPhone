@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder"
   },
   "repository": {
     "type": "git",
@@ -18,10 +19,29 @@
   },
   "homepage": "https://gitlab.com/nguyenduy7474/crawl-phone-number#readme",
   "dependencies": {
+    "electron-root-path": "^1.1.0",
     "exceljs": "^4.3.0",
     "puppeteer": "^19.0.0"
   },
   "devDependencies": {
-    "electron": "^22.0.0"
+    "electron": "^22.0.0",
+    "electron-builder": "^22.10.3"
+  },
+  "build": {
+    "appId": "NOMI",
+    "extraFiles": [
+      {
+        "from": "nomi.ico",
+        "to": "nomi.ico"
+      }
+    ],
+    "win": {
+      "icon": "nomi.ico",
+      "target": "portable"
+    },
+    "portable": {
+      "unicode": false,
+      "artifactName": "NOMI.exe"
+    }
   }
 }

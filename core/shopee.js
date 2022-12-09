@@ -1,11 +1,14 @@
 const puppeteer = require('puppeteer');
 const ExcelJS = require('exceljs');
 const Common = require('./common');
-const { ipcMain } = require('electron')
+const rootPath = require('electron-root-path').rootPath;
+const path = require('path')
 class Shopee {
     dataList = [];
+    browser;
     browserPage;
     browserProduct;
+    currentPage = 0;
     constructor(keyword, delayMin, delayMax, pageMax, mainWindow) {
         this.keyword = keyword;
         this.delayMin = delayMin;
@@ -14,35 +17,40 @@ class Shopee {
         this.mainWindow = mainWindow;
     }
     readDataList() {
-        return this.dataList;
+        return this.dataList.length + ' ' + this.listProductCrawled.length;
     }
     readFileExcel() {
         return new Promise(async (resolve) => {
             try {
+                const pathExcel = path.join(rootPath, `./result/${this.keyword}_shopee.xlsx`);
                 const workbook = new ExcelJS.Workbook();
-                let data = await workbook.xlsx.readFile(`./${this.keyword}_shopee.xlsx`);
+                let data = await workbook.xlsx.readFile(pathExcel);
                 let worksheet = data.getWorksheet("My Sheet")
                 let dataList = []
                 worksheet.eachRow({ includeEmpty: false }, function (row, rowNumber) {
-                    dataList.push({ nameShop: row.values[1], linkShop: row.values[4], from: row.values[5], linkProduct: row.values[7].split(';') })
+                    dataList.push({ nameShop: row.values[1], idShop: row.values[2], linkShop: row.values[5], from: row.values[6], linkProduct: row.values[8].split(';') })
                 });
                 //remove header !!! IMPORTANT !!!
                 dataList.shift()
                 this.dataList = dataList
                 resolve()
             } catch (e) {
-                resolve(null)
+                console.log(e)
+                resolve()
             }
         });
     };
-    writeFileExcel(nameFile, data) {
+    writeFileExcel() {
         return new Promise(async (resolve, reject) => {
             try {
+                const pathExcel = path.join(rootPath, `./result/${this.keyword}_shopee.xlsx`);
+                let data = this.dataList
                 const workbook = new ExcelJS.Workbook();
                 const worksheet = workbook.addWorksheet('My Sheet');
                 const HEARDER = worksheet.getRow(1);
                 HEARDER.values = [
                     "Tên Shop",
+                    "Shop Id",
                     "Số điện thoại",
                     "Email",
                     "Link Web",
@@ -52,13 +60,14 @@ class Shopee {
                 ]
                 for (let i = 0; i < data.length; i++) {
                     worksheet.getCell(`A${i + 2}`).value = data[i].nameShop;
-                    worksheet.getCell(`D${i + 2}`).value = data[i].linkShop;
-                    worksheet.getCell(`E${i + 2}`).value = data[i].from;
-                    worksheet.getCell(`G${i + 2}`).value = data[i].linkProduct.toString().replace(/,/g, ";");
+                    worksheet.getCell(`B${i + 2}`).value = data[i].idShop;
+                    worksheet.getCell(`E${i + 2}`).value = data[i].linkShop;
+                    worksheet.getCell(`F${i + 2}`).value = data[i].from;
+                    worksheet.getCell(`H${i + 2}`).value = data[i].linkProduct.toString().replace(/,/g, ";");
                 }
 
                 workbook.xlsx
-                    .writeFile(`./${nameFile}_shopee.xlsx`)
+                    .writeFile(pathExcel)
                     .then(() => {
                         //console.log('file created');
                     })
@@ -81,6 +90,7 @@ class Shopee {
             args: [`--window-size=${WIDTH},${HEIGHT}`]
         });
         const pages = await browser.pages();
+        this.browser = browser;
         this.page = pages[0];
         this.browserProduct = await browser.newPage();
     }
@@ -106,99 +116,38 @@ class Shopee {
                 })[0].click();
         })
     }
-    async running() {
-        try {
-            let listProductCrawled = []
-            if (this.listExcel != null) {
-                this.listExcel.forEach(element => {
-                    listProductCrawled.push(element.linkProduct)
-                });
-            }
-            listProductCrawled = listProductCrawled.flat()
-
-
-
-
-            let linkShopee = 'https://shopee.vn/search?keyword=sen%20%C4%91%C3%A1';
-
-            //await installMouseHelper(page);
-            await page.goto(linkShopee, { waitUntil: "networkidle2" });
-
-            let dataList = await page.evaluate(async () => {
-                let linkList = []
-                let listProduct = document.getElementsByClassName("shopee-search-item-result__items")[0].children
-                await new Promise(r => setTimeout(r, 3000));
-
-
-                for (let j = 0; j < listProduct.length; j++) {
-                    let data = listProduct[j].children[0].href
-                    while (data == null) {
-                        window.scrollTo(0, 1000);
-                        await new Promise(r => setTimeout(r, 500));
-                        window.scrollTo(0, 2000);
-                        await new Promise(r => setTimeout(r, 500));
-                        window.scrollTo(0, 3000);
-                        await new Promise(r => setTimeout(r, 500));
-                        window.scrollTo(0, 4000);
-                        await new Promise(r => setTimeout(r, 500));
-                        data = listProduct[j].children[0].href
-                    }
-                    linkList.push(data.split('?')[0])
-                }
-                document.getElementsByClassName("shopee-button-no-outline")[0].click()
-                await new Promise(r => setTimeout(r, 3000));
-                listProduct = document.getElementsByClassName("shopee-search-item-result__items")[0].children
-                for (let j = 0; j < listProduct.length; j++) {
-                    let data = listProduct[j].children[0].href
-                    while (data == null) {
-                        window.scrollTo(0, 1000);
-                        await new Promise(r => setTimeout(r, 500));
-                        window.scrollTo(0, 2000);
-                        await new Promise(r => setTimeout(r, 500));
-                        window.scrollTo(0, 3000);
-                        await new Promise(r => setTimeout(r, 500));
-                        window.scrollTo(0, 4000);
-                        await new Promise(r => setTimeout(r, 500));
-                        data = listProduct[j].children[0].href
-                    }
-                    linkList.push(data.split('?')[0])
-                }
-                return linkList
-            });
-
-            let listProductCrawlLinks = []
-            for (let i = 0; i < dataList.length; i++) {
-                if (listProductCrawled.indexOf(dataList[i]) == -1) listProductCrawlLinks.push(dataList[i])
-            }
-            //console.log(listProductCrawlLinks.length)
-            let dataFindByLink = this.listExcel != null ? this.listExcel : [];
-            for (let i = 0; i < listProductCrawlLinks.length; i++) {
-                await page.goto(listProductCrawlLinks[i], { waitUntil: "networkidle2" });
-                let data = await page.evaluate(async () => {
-                    window.scrollTo(0, 1000);
-                    let randomnumber = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
-                    await new Promise(r => setTimeout(r, randomnumber * 1000));
-                    let nameShop = document.getElementsByClassName("page-product__shop")[0].children[0].children[1].children[0].textContent;
-                    let linkShop = document.getElementsByClassName("page-product__shop")[0].children[0].children[1].children[2].children[1].href.split('?')[0]
-                    let elements = Array.from(document.querySelectorAll('label'));
-                    let match = elements.find(item => {
-                        return item.textContent.includes("Gửi từ");
-                    });
-                    let from = match.parentElement.children[1].textContent
-                    return { nameShop, linkShop, from }
-                });
-                if (i == 0) {
-                    dataFindByLink.push({ nameShop: data.nameShop, linkShop: data.linkShop, from: data.from, linkProduct: [listProductCrawlLinks[i]] })
-                } else {
-                    let index = dataFindByLink.findIndex(item => item.nameShop == data.nameShop)
-                    if (index == -1) dataFindByLink.push({ nameShop: data.nameShop, linkShop: data.linkShop, from: data.from, linkProduct: [listProductCrawlLinks[i]] })
-                    else dataFindByLink[index].linkProduct.push(listProductCrawlLinks[i])
-                }
-                writeFileExcel(keyword, dataFindByLink)
-            }
-        } catch (error) {
-            console.log(error)
-        }
+    async openPage(keyword) {
+        let linkquery = 'https://shopee.vn/search?keyword=' + keyword + '&page=' + this.currentPage;
+        this.currentPage = this.currentPage + 1;
+        await this.page.goto(linkquery, { waitUntil: "networkidle2" });
+    }
+    async getItemsInPage() {
+        await this.page.bringToFront();
+        let displayItems = await this.page.evaluate(async () => {
+            await new Promise(r => setTimeout(r, 5000));
+            return Object.entries(document.getElementsByClassName("shopee-search-item-result")[0])[0][1].return.memoizedProps.displayItems
+        });
+        let data = displayItems.map(element => {
+            return { itemId: element.itemid, idShop: element.shopid, itemName: element.name.replace(/[\t\r\n]|(--[^\r\n]*)|(\/\*[\w\W]*?(?=\*)\*\/|[/ /])/gi, "-") }
+        })
+        return data
+    }
+    async getInfoItem(itemId, idShop) {
+        await this.browserProduct.bringToFront();
+        let link = `https://shopee.vn/${this.keyword}-i.${idShop}.${itemId}`;
+        await this.browserProduct.goto(link, { waitUntil: "networkidle2" });
+        let data = await this.browserProduct.evaluate(async () => {
+            let shopInfo = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.shopInfo
+            // let nameShop = document.getElementsByClassName("page-product__shop")[0].children[0].children[1].children[0].textContent;
+            // let linkShop = document.getElementsByClassName("page-product__shop")[0].children[0].children[1].children[2].children[1].href.split('?')[0]
+            // let elements = Array.from(document.querySelectorAll('label'));
+            // let match = elements.find(item => {
+            //     return item.textContent.includes("Gửi từ");
+            // });
+            // let from = match.parentElement.children[1].textContent
+            return { nameShop: shopInfo.name, linkShop: `https://shopee.vn/${shopInfo.account.username}`, from: shopInfo.shop_location }
+        });
+        return data
     }
 }
 module.exports = Shopee;
