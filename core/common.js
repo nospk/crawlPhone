@@ -30,6 +30,7 @@ class Common {
     static waitFor = async (time) => {
         await new Promise(r => setTimeout(r, time));
     }
+    
 }
 
 module.exports = Common;

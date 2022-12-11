@@ -1,15 +1,12 @@
-const puppeteer = require('puppeteer');
 const ExcelJS = require('exceljs');
 const Common = require('./common');
 const path = require('path');
-
-class Shopee {
+const Browser = require('./browser');
+class Shopee extends Browser {
     dataList = [];
-    browser;
-    browserPage;
-    browserProduct;
     currentPage = 0;
     constructor(keyword, delayMin, delayMax, pageMax, dirFile) {
+        super();
         this.keyword = keyword;
         this.delayMin = delayMin;
         this.delayMax = delayMax;
@@ -79,26 +76,12 @@ class Shopee {
             }
         });
     }
-    async openChrome() {
-        const WIDTH = 1500
-        const HEIGHT = 1500
-
-        const browser = await puppeteer.launch({
-            headless: false,
-            defaultViewport: null,
-            args: [`--window-size=${WIDTH},${HEIGHT}`]
-        });
-        const pages = await browser.pages();
-        this.browser = browser;
-        this.page = pages[0];
-        this.browserProduct = await browser.newPage();
-    }
     async loginShopee() {
-        await this.page.bringToFront();
+        await this.browserPage.bringToFront();
         let loginShopee = 'https://shopee.vn/buyer/login';
-        await this.page.goto(loginShopee, { waitUntil: "networkidle2" });
+        await this.browserPage.goto(loginShopee, { waitUntil: "networkidle2" });
         await Common.waitFor(2000);
-        await this.page.evaluate(async () => {
+        await this.browserPage.evaluate(async () => {
             const USERSHOPEE = 'bhngocminh.vn';
             const PASSSHOPEE = 'Thanhbinh29';
             let username = document.querySelector('input[name="loginKey"]')
@@ -118,11 +101,11 @@ class Shopee {
     async openPage(keyword) {
         let linkquery = 'https://shopee.vn/search?keyword=' + keyword + '&page=' + this.currentPage;
         this.currentPage = this.currentPage + 1;
-        await this.page.goto(linkquery, { waitUntil: "networkidle2" });
+        await this.browserPage.goto(linkquery, { waitUntil: "networkidle2" });
     }
     async getItemsInPage() {
-        await this.page.bringToFront();
-        let displayItems = await this.page.evaluate(async () => {
+        await this.browserPage.bringToFront();
+        let displayItems = await this.browserPage.evaluate(async () => {
             await new Promise(r => setTimeout(r, 5000));
             return Object.entries(document.getElementsByClassName("shopee-search-item-result")[0])[0][1].return.memoizedProps.displayItems
         });
@@ -135,17 +118,12 @@ class Shopee {
         await this.browserProduct.bringToFront();
         let link = `https://shopee.vn/${this.keyword}-i.${idShop}.${itemId}`;
         await this.browserProduct.goto(link, { waitUntil: "networkidle2" });
-        let data = await this.browserProduct.evaluate(async () => {
+        let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
+            let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
+            await new Promise(r => setTimeout(r, randomnumber * 1000));
             let shopInfo = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.shopInfo
-            // let nameShop = document.getElementsByClassName("page-product__shop")[0].children[0].children[1].children[0].textContent;
-            // let linkShop = document.getElementsByClassName("page-product__shop")[0].children[0].children[1].children[2].children[1].href.split('?')[0]
-            // let elements = Array.from(document.querySelectorAll('label'));
-            // let match = elements.find(item => {
-            //     return item.textContent.includes("Gửi từ");
-            // });
-            // let from = match.parentElement.children[1].textContent
             return { nameShop: shopInfo.name, linkShop: `https://shopee.vn/${shopInfo.account.username}`, from: shopInfo.shop_location }
-        });
+        }, this.delayMax, this.delayMin);
         return data
     }
 }

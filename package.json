@@ -19,6 +19,7 @@
   },
   "homepage": "https://gitlab.com/nguyenduy7474/crawl-phone-number#readme",
   "dependencies": {
+    "chrome-paths": "^1.0.1",
     "exceljs": "^4.3.0",
     "puppeteer": "^19.0.0"
   },

@@ -4,10 +4,10 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const fs = require('fs');
 const path = require('path');
-const Shopee = require('./core/shopee')
-const Common = require('./core/common');
+const Controller = require('./controller')
+
 let mainWindow
-let running = true;
+let controller
 
 
 
@@ -15,6 +15,7 @@ const dirFile = path.join(app.getPath('userData'), './result');
 if (!fs.existsSync(dirFile)) {
   fs.mkdirSync(dirFile);
 }
+
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -31,7 +32,7 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   mainWindow.loadFile('./index.html')
-
+  controller = new Controller(mainWindow)
   // Open the DevTools.
   //mainWindow.webContents.openDevTools()
 }
@@ -66,7 +67,7 @@ ipcMain.on("runCrawl", async (event, args) => {
     if (keyword == "") throw "Chưa nhập từ khóa"
     switch (typeRun) {
       case "shopee":
-        runTypeShopee(keyword, delayMin, delayMax, pageMax)
+        controller.runShopee(keyword, delayMin, delayMax, pageMax, dirFile)
         break;
     }
   } catch (err) {
@@ -80,7 +81,7 @@ ipcMain.on("stopCrawl", async (event, args) => {
     let { typeRun } = args
     switch (typeRun) {
       case "shopee":
-        stopShopee()
+        controller.stop()
         break;
     }
   } catch (err) {
@@ -93,52 +94,3 @@ ipcMain.on("openFolder", async (event, args) => {
   require('child_process').exec(`explorer.exe "${dirFile}"`);
 });
 
-const stopShopee = () => {
-  running = false;
-}
-const runTypeShopee = async (keyword, delayMin, delayMax, pageMax) => {
-  running = true;
-  let keyWordRemoveTons = Common.removeVietnameseTones(keyword);
-  const shopee = new Shopee(keyWordRemoveTons, delayMin, delayMax, pageMax, dirFile);
-  try {
-    await shopee.readFileExcel()
-    mainWindow.webContents.send("notification-running", "Open file");
-    await shopee.openChrome()
-    mainWindow.webContents.send("notification-running", "Open chrome");
-    await shopee.loginShopee()
-    mainWindow.webContents.send("notification-running", "Login");
-    await Common.waitFor(5000);
-    while (running && shopee.currentPage < shopee.pageMax) {
-      await shopee.openPage(keyword)
-      mainWindow.webContents.send("notification-running", "Crawl Page " + shopee.currentPage);
-      await Common.waitFor(1000);
-      let crawlItemsInPage = await shopee.getItemsInPage()
-      for (let i = 0; i < crawlItemsInPage.length; i++) {
-        if (running) {
-          mainWindow.webContents.send("notification-status", { status: "Đang hoạt động", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: i });
-          let linkProduct = `https://shopee.vn/${keyWordRemoveTons}-i.${crawlItemsInPage[i].idShop}.${crawlItemsInPage[i].itemId}`
-
-          let index = shopee.dataList.length > 0 ? shopee.dataList.findIndex(item => item.idShop == crawlItemsInPage[i].idShop) : -1;
-          if (index != -1) {
-            shopee.dataList[index].linkProduct.push(linkProduct)
-          } else {
-            let item = await shopee.getInfoItem(crawlItemsInPage[i].itemId, crawlItemsInPage[i].idShop)
-            shopee.dataList.push({ nameShop: item.nameShop, linkShop: item.linkShop, from: item.from, linkProduct: [linkProduct], idShop: crawlItemsInPage[i].idShop })
-            let randomnumber = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
-            await Common.waitFor(randomnumber * 1000);
-          }
-          await shopee.writeFileExcel();
-        } else {
-          break;
-        }
-      }
-    }
-    mainWindow.webContents.send("notification-status", { status: "Kết thúc", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: 0 });
-    shopee.browser.close();
-  } catch (err) {
-    dialog.showErrorBox("Lỗi", "Vui lòng kiểm tra")
-    mainWindow.webContents.send("notification-status", { status: "Lỗi", shopNumber: 0, pageNumber: 0, productNumber: 0 });
-    mainWindow.webContents.send("notification-error", err);
-    shopee.browser.close();
-  }
-}

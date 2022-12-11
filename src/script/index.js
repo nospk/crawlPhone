@@ -2,7 +2,7 @@ document.getElementById("buttonRun").addEventListener("click", runCrawl);
 document.getElementById("buttonStop").addEventListener("click", stopCrawl);
 document.getElementById("buttonOpenFolder").addEventListener("click", openFolder);
 function openFolder() {
-    window.api.send("openFolder","");
+    window.api.send("openFolder", "");
 }
 function stopCrawl() {
     let typeRun = document.getElementById("typeRun").value;
@@ -43,5 +43,10 @@ window.api.receive("notification-status", (data) => {
         document.getElementById('shopNumber').innerHTML = data.shopNumber;
         document.getElementById('pageNumber').innerHTML = data.pageNumber;
         document.getElementById('productNumber').innerHTML = data.productNumber;
+    }
+    if (data.status == "Kết thúc") {
+        document.getElementById("buttonStop").classList.add("d-none");
+        document.getElementById("buttonRun").classList.remove("d-none");
+        document.getElementById("typeRun").disabled = false;
     }
 });
