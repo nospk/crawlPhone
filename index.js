@@ -23,7 +23,7 @@ const createWindow = () => {
     height: 520,
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, './preload.js'),
+      preload: path.join(__dirname, './controller/preload.js'),
       sandbox: true,
       nodeIntegration: false,
       contextIsolation: true,

@@ -10,7 +10,7 @@ class Browser {
         const WIDTH = 800
         const HEIGHT = 600
         const browser = await puppeteer.launch({
-            headless: false,
+            headless: true,
             defaultViewport: null,
             args: [`--window-size=${WIDTH},${HEIGHT}`],
             executablePath: chromePaths.chrome
