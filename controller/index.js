@@ -1,36 +1,40 @@
 const Shopee = require('../core/shopee');
 const Common = require('../core/common');
-const {dialog } = require('electron');
+const { dialog } = require('electron');
 
 class Controller {
-  constructor(mainWindow) {
+  constructor(mainWindow, dirFile) {
+    this.dirFile = dirFile
     this.mainWindow = mainWindow;
     this.running = true;
+  }
+  sendLogs(type, msg) {
+    this.mainWindow.webContents.send(type, msg);
   }
   stop() {
     this.running = false;
   }
-  async runShopee(keyword, delayMin, delayMax, pageMax, dirFile) {
+  async runShopee(keyword, delayMin, delayMax, pageMax) {
     this.running = true;
     let keyWordRemoveTons = Common.removeVietnameseTones(keyword);
-    const shopee = new Shopee(keyWordRemoveTons, delayMin, delayMax, pageMax, dirFile);
+    const shopee = new Shopee(keyWordRemoveTons, delayMin, delayMax, pageMax, this.dirFile);
     try {
-      this.mainWindow.webContents.send("notification-running", "Open file");
+      this.sendLogs("notification-logs", "Open file");
       await shopee.readFileExcel()
-      this.mainWindow.webContents.send("notification-running", "Open chrome");
+      this.sendLogs("notification-logs", "Open chrome");
       await shopee.openChrome()
-      this.mainWindow.webContents.send("notification-running", "Login");
+      this.sendLogs("notification-logs", "Login");
       await shopee.loginShopee()
       await Common.waitFor(5000);
-      this.mainWindow.webContents.send("notification-running", "Running Shopee");
+      this.sendLogs("notification-logs", "Running Shopee");
       while (this.running && shopee.currentPage < shopee.pageMax) {
         await shopee.openPage(keyword)
-        this.mainWindow.webContents.send("notification-running", "Crawl Page " + shopee.currentPage);
+        this.sendLogs("notification-logs", "Crawl Page " + shopee.currentPage);
         await Common.waitFor(1000);
         let crawlItemsInPage = await shopee.getItemsInPage()
         for (let i = 0; i < crawlItemsInPage.length; i++) {
           if (this.running) {
-            this.mainWindow.webContents.send("notification-status", { status: "Đang hoạt động", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: i });
+            this.sendLogs("notification-status", { status: "Đang hoạt động", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: i });
             let linkProduct = `https://shopee.vn/${keyWordRemoveTons}-i.${crawlItemsInPage[i].idShop}.${crawlItemsInPage[i].itemId}`
 
             let index = shopee.dataList.length > 0 ? shopee.dataList.findIndex(item => item.idShop == crawlItemsInPage[i].idShop) : -1;
@@ -46,15 +50,15 @@ class Controller {
           }
         }
       }
-      this.mainWindow.webContents.send("notification-running", "Stop Shopee");
-      this.mainWindow.webContents.send("notification-status", { status: "Kết thúc", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: 0 });
+      this.sendLogs("notification-logs", "Stop Shopee");
+      this.sendLogs("notification-status", { status: "Kết thúc", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: 0 });
       shopee.browser.close();
     } catch (err) {
       console.log(err)
       dialog.showErrorBox("Lỗi", "Vui lòng kiểm tra")
-      this.mainWindow.webContents.send("notification-running", "Stop Shopee");
-      this.mainWindow.webContents.send("notification-status", { status: "Lỗi", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: 0 });
-      this.mainWindow.webContents.send("notification-error", err);
+      this.sendLogs("notification-logs", "Stop Shopee");
+      this.sendLogs("notification-status", { status: "Lỗi", shopNumber: shopee.dataList.length, pageNumber: shopee.currentPage, productNumber: 0 });
+      this.sendLogs("notification-error", err);
       shopee.browser.close();
     }
   }

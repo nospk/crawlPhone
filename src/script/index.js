@@ -31,7 +31,7 @@ window.api.receive("notification-error", (data) => {
         document.getElementById("typeRun").disabled = false;
     }
 });
-window.api.receive("notification-running", (data) => {
+window.api.receive("notification-logs", (data) => {
     if (data) {
         let textarea = document.getElementById('logs');
         textarea.value += new Date().toLocaleTimeString() + ': ' + data + '\n';

@@ -32,7 +32,7 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   mainWindow.loadFile('./src/index.html')
-  controller = new Controller(mainWindow)
+  controller = new Controller(mainWindow, dirFile)
   // Open the DevTools.
   //mainWindow.webContents.openDevTools()
 }
@@ -67,7 +67,7 @@ ipcMain.on("runCrawl", async (event, args) => {
     if (keyword == "") throw "Chưa nhập từ khóa"
     switch (typeRun) {
       case "shopee":
-        controller.runShopee(keyword, delayMin, delayMax, pageMax, dirFile)
+        controller.runShopee(keyword, delayMin, delayMax, pageMax)
         break;
     }
   } catch (err) {
