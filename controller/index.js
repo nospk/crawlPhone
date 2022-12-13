@@ -42,7 +42,10 @@ class Controller {
               shopee.dataList[index].linkProduct.push(linkProduct)
             } else {
               let item = await shopee.getInfoItem(crawlItemsInPage[i].itemId, crawlItemsInPage[i].idShop)
-              shopee.dataList.push({ nameShop: item.nameShop, linkShop: item.linkShop, from: item.from, linkProduct: [linkProduct], idShop: crawlItemsInPage[i].idShop })
+              if(item.phoneShop == null){
+                item.phoneShop = await shopee.getInfoShop(item.linkShop)
+              }
+              shopee.dataList.push({ nameShop: item.nameShop, linkShop: item.linkShop, from: item.from, phoneShop: [item.phoneShop], linkProduct: [linkProduct], idShop: crawlItemsInPage[i].idShop })
             }
             await shopee.writeFileExcel();
           } else {

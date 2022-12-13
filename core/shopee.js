@@ -25,7 +25,7 @@ class Shopee extends Browser {
                 let worksheet = data.getWorksheet("My Sheet")
                 let dataList = []
                 worksheet.eachRow({ includeEmpty: false }, function (row, rowNumber) {
-                    dataList.push({ nameShop: row.values[1], idShop: row.values[2], linkShop: row.values[5], from: row.values[6], linkProduct: row.values[8].split(';') })
+                    dataList.push({ nameShop: row.values[1], idShop: row.values[2], phoneShop: row.values[3].split(';'), linkShop: row.values[5], from: row.values[6], linkProduct: row.values[8].split(';') })
                 });
                 //remove header !!! IMPORTANT !!!
                 dataList.shift()
@@ -57,6 +57,7 @@ class Shopee extends Browser {
                 for (let i = 0; i < data.length; i++) {
                     worksheet.getCell(`A${i + 2}`).value = data[i].nameShop;
                     worksheet.getCell(`B${i + 2}`).value = data[i].idShop;
+                    worksheet.getCell(`C${i + 2}`).value = data[i].phoneShop.toString().replace(/,/g, ";");
                     worksheet.getCell(`E${i + 2}`).value = data[i].linkShop;
                     worksheet.getCell(`F${i + 2}`).value = data[i].from;
                     worksheet.getCell(`H${i + 2}`).value = data[i].linkProduct.toString().replace(/,/g, ";");
@@ -119,12 +120,30 @@ class Shopee extends Browser {
         let link = `https://shopee.vn/${this.keyword}-i.${idShop}.${itemId}`;
         await this.browserProduct.goto(link, { waitUntil: "networkidle2" });
         let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
+            let phoneDetect = /(\84|0)+(([\d] *){9})/g;
             let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
             await new Promise(r => setTimeout(r, randomnumber * 1000));
             let shopInfo = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.shopInfo
-            return { nameShop: shopInfo.name, linkShop: `https://shopee.vn/${shopInfo.account.username}`, from: shopInfo.shop_location }
+            let phoneNumber = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.item.description.match(phoneDetect)
+            return { nameShop: shopInfo.name, linkShop: `https://shopee.vn/${shopInfo.account.username}`, from: shopInfo.shop_location, phoneShop: phoneNumber }
         }, this.delayMax, this.delayMin);
         return data
     }
+    async getInfoShop(linkShop) {
+        await this.browserProduct.bringToFront();
+        await this.browserProduct.goto(linkShop, { waitUntil: "networkidle2" });
+        let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
+            let phoneDetect = /(\84|0)+(([\d] *){9})/g;
+            let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
+            let phoneNumber;
+            await new Promise(r => setTimeout(r, randomnumber * 1000));
+            if (document.getElementsByClassName("shop-decoration").length != 0) {
+                phoneNumber = document.getElementsByClassName("shop-decoration")[0].innerText.match(phoneDetect)
+            }  
+            return phoneNumber;
+        }, this.delayMax, this.delayMin);
+        return data
+    }
+
 }
 module.exports = Shopee;
