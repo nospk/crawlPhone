@@ -21,7 +21,7 @@
   "dependencies": {
     "chrome-paths": "^1.0.1",
     "exceljs": "^4.3.0",
-    "puppeteer": "^19.0.0"
+    "puppeteer-core": "^19.4.0"
   },
   "devDependencies": {
     "electron": "^22.0.0",

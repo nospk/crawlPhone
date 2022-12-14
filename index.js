@@ -69,6 +69,9 @@ ipcMain.on("runCrawl", async (event, args) => {
       case "shopee":
         controller.runShopee(keyword, delayMin, delayMax, pageMax)
         break;
+      case "tiki":
+        controller.runTiki(keyword, delayMin, delayMax, pageMax)
+        break;
     }
   } catch (err) {
     dialog.showErrorBox("Lỗi", "Vui lòng kiểm tra")
@@ -78,12 +81,7 @@ ipcMain.on("runCrawl", async (event, args) => {
 });
 ipcMain.on("stopCrawl", async (event, args) => {
   try {
-    let { typeRun } = args
-    switch (typeRun) {
-      case "shopee":
-        controller.stop()
-        break;
-    }
+    await controller.stop()
   } catch (err) {
     dialog.showErrorBox("Lỗi", "Vui lòng kiểm tra")
     mainWindow.webContents.send("notification-error", err);

@@ -2,7 +2,7 @@ const ExcelJS = require('exceljs');
 const Common = require('./common');
 const path = require('path');
 const Browser = require('./browser');
-class Shopee extends Browser {
+class ShopeeWeb extends Browser {
     dataList = [];
     currentPage = 0;
     constructor(keyword, delayMin, delayMax, pageMax, dirFile) {
@@ -25,7 +25,14 @@ class Shopee extends Browser {
                 let worksheet = data.getWorksheet("My Sheet")
                 let dataList = []
                 worksheet.eachRow({ includeEmpty: false }, function (row, rowNumber) {
-                    dataList.push({ nameShop: row.values[1], idShop: row.values[2], phoneShop: row.values[3].split(';'), linkShop: row.values[5], from: row.values[6], linkProduct: row.values[8].split(';') })
+                    dataList.push({
+                        nameShop: row.values[1],
+                        idShop: row.values[2],
+                        phoneShop: row.values[3].split(';'),
+                        linkShop: row.values[5], from: row.values[6],
+                        linkProduct: row.values[8].split(';'),
+                        phoneGoogle: row.values[9].split(';')
+                    })
                 });
                 //remove header !!! IMPORTANT !!!
                 dataList.shift()
@@ -53,6 +60,7 @@ class Shopee extends Browser {
                     "Khu vực",
                     "Địa chỉ",
                     "Link Sản phẩm",
+                    "Số điện thoại Goolge",
                 ]
                 for (let i = 0; i < data.length; i++) {
                     worksheet.getCell(`A${i + 2}`).value = data[i].nameShop;
@@ -61,6 +69,7 @@ class Shopee extends Browser {
                     worksheet.getCell(`E${i + 2}`).value = data[i].linkShop;
                     worksheet.getCell(`F${i + 2}`).value = data[i].from;
                     worksheet.getCell(`H${i + 2}`).value = data[i].linkProduct.toString().replace(/,/g, ";");
+                    worksheet.getCell(`I${i + 2}`).value = data[i].phoneGoogle.toString().replace(/,/g, ";");
                 }
 
                 workbook.xlsx
@@ -79,18 +88,18 @@ class Shopee extends Browser {
     }
     async loginShopee() {
         await this.browserPage.bringToFront();
-        let loginShopee = 'https://shopee.vn/buyer/login';
-        await this.browserPage.goto(loginShopee, { waitUntil: "networkidle2" });
+        let link = 'https://shopee.vn/buyer/login';
+        await this.browserPage.goto(link, { waitUntil: "networkidle2" });
         await Common.waitFor(2000);
         await this.browserPage.evaluate(async () => {
-            const USERSHOPEE = 'bhngocminh.vn';
-            const PASSSHOPEE = 'Thanhbinh29';
+            const USER = 'bhngocminh.vn';
+            const PASSWORD = 'Thanhbinh29';
             let username = document.querySelector('input[name="loginKey"]')
             let password = document.querySelector('input[name="password"]')
-            username.setAttribute("value", USERSHOPEE);
+            username.setAttribute("value", USER);
             username.dispatchEvent(new Event("change", { bubbles: true }));
             username.dispatchEvent(new Event("blur", { bubbles: true }));
-            password.setAttribute("value", PASSSHOPEE);
+            password.setAttribute("value", PASSWORD);
             password.dispatchEvent(new Event("change", { bubbles: true }));
             password.dispatchEvent(new Event("blur", { bubbles: true }));
             Array.prototype.slice.call(document.querySelectorAll('button'))
@@ -102,6 +111,7 @@ class Shopee extends Browser {
     async openPage(keyword) {
         let linkquery = 'https://shopee.vn/search?keyword=' + keyword + '&page=' + this.currentPage;
         this.currentPage = this.currentPage + 1;
+        await this.browserPage.bringToFront();
         await this.browserPage.goto(linkquery, { waitUntil: "networkidle2" });
     }
     async getItemsInPage() {
@@ -111,7 +121,7 @@ class Shopee extends Browser {
             return Object.entries(document.getElementsByClassName("shopee-search-item-result")[0])[0][1].return.memoizedProps.displayItems
         });
         let data = displayItems.map(element => {
-            return { itemId: element.itemid, idShop: element.shopid, itemName: element.name.replace(/[\t\r\n]|(--[^\r\n]*)|(\/\*[\w\W]*?(?=\*)\*\/|[/ /])/gi, "-") }
+            return { itemId: element.itemid, idShop: element.shopid}
         })
         return data
     }
@@ -139,11 +149,11 @@ class Shopee extends Browser {
             await new Promise(r => setTimeout(r, randomnumber * 1000));
             if (document.getElementsByClassName("shop-decoration").length != 0) {
                 phoneNumber = document.getElementsByClassName("shop-decoration")[0].innerText.match(phoneDetect)
-            }  
+            }
             return phoneNumber;
         }, this.delayMax, this.delayMin);
         return data
     }
 
 }
-module.exports = Shopee;
+module.exports = ShopeeWeb;
