@@ -72,6 +72,12 @@ ipcMain.on("runCrawl", async (event, args) => {
       case "tiki":
         controller.runTiki(keyword, delayMin, delayMax, pageMax)
         break;
+      case "lazada":
+        controller.runLazada(keyword, delayMin, delayMax, pageMax)
+        break;
+      case "sendo":
+        controller.runSendo(keyword, delayMin, delayMax, pageMax)
+        break;
     }
   } catch (err) {
     dialog.showErrorBox("Lỗi", "Vui lòng kiểm tra")

@@ -2,15 +2,15 @@ const ExcelJS = require('exceljs');
 const Common = require('./common');
 const path = require('path');
 const Browser = require('./browser');
-class ShopeeWeb extends Browser {
+class LazadaWeb extends Browser {
     dataList = [];
-    currentPage = 0;
+    currentPage = 1;
     constructor(keyword, delayMin, delayMax, pageMax, dirFile) {
         super();
         this.keyword = keyword;
         this.delayMin = delayMin;
         this.delayMax = delayMax;
-        this.pageMax = pageMax;
+        this.pageMax = Number(pageMax) + 1;
         this.dirFile = dirFile
     }
     readDataList() {
@@ -19,7 +19,7 @@ class ShopeeWeb extends Browser {
     readFileExcel() {
         return new Promise(async (resolve) => {
             try {
-                const pathExcel = path.join(this.dirFile, `./${this.keyword}_shopee.xlsx`);
+                const pathExcel = path.join(this.dirFile, `./${this.keyword}_lazada.xlsx`);
                 const workbook = new ExcelJS.Workbook();
                 let data = await workbook.xlsx.readFile(pathExcel);
                 let worksheet = data.getWorksheet("My Sheet")
@@ -46,7 +46,7 @@ class ShopeeWeb extends Browser {
     writeFileExcel() {
         return new Promise(async (resolve, reject) => {
             try {
-                const pathExcel = path.join(this.dirFile, `./${this.keyword}_shopee.xlsx`);
+                const pathExcel = path.join(this.dirFile, `./${this.keyword}_lazada.xlsx`);
                 let data = this.dataList
                 const workbook = new ExcelJS.Workbook();
                 const worksheet = workbook.addWorksheet('My Sheet');
@@ -86,30 +86,40 @@ class ShopeeWeb extends Browser {
             }
         });
     }
-    async loginShopee() {
+    async loginLazada() {
         await this.browserPage.bringToFront();
-        let link = 'https://shopee.vn/buyer/login';
+        let link = 'https://member.lazada.vn/user/login';
         await this.browserPage.goto(link, { waitUntil: "networkidle2" });
         await Common.waitFor(2000);
         await this.browserPage.evaluate(async () => {
-            const USER = 'bhngocminh.vn';
-            const PASSWORD = 'Thanhbinh29';
-            let username = document.querySelector('input[name="loginKey"]')
-            let password = document.querySelector('input[name="password"]')
-            username.setAttribute("value", USER);
-            username.dispatchEvent(new Event("change", { bubbles: true }));
-            username.dispatchEvent(new Event("blur", { bubbles: true }));
-            password.setAttribute("value", PASSWORD);
-            password.dispatchEvent(new Event("change", { bubbles: true }));
-            password.dispatchEvent(new Event("blur", { bubbles: true }));
+            const USER = 'thaibinh1729@gmail.com';
+            const PASSWORD = 'Ngocminh123';
+            let inputUser = document.querySelector('input[placeholder="Vui lòng nhập số điện thoại hoặc email của bạn"]');
+            let userValue = inputUser.value;
+            inputUser.value = USER;
+            let event = new Event('input', { bubbles: true });
+            event.simulated = true;
+            let trackerUser = inputUser._valueTracker;
+            if (trackerUser) {
+                trackerUser.setValue(userValue);
+            }
+            inputUser.dispatchEvent(event);
+            let inputPass = document.querySelector('input[type="password"]');
+            let userPass = inputPass.value;
+            inputPass.value = PASSWORD;
+            let trackerPass = inputPass._valueTracker;
+            if (trackerPass) {
+                trackerPass.setValue(userPass);
+            }
+            inputPass.dispatchEvent(event);
             Array.prototype.slice.call(document.querySelectorAll('button'))
                 .filter(function (el) {
-                    return el.textContent === 'Đăng nhập'
+                    return el.textContent === 'ĐĂNG NHẬP'
                 })[0].click();
         })
     }
     async openPage(keyword) {
-        let linkquery = 'https://shopee.vn/search?keyword=' + keyword + '&page=' + this.currentPage;
+        let linkquery = 'https://www.lazada.vn/catalog/?q=' + keyword + '&page=' + this.currentPage;
         this.currentPage = this.currentPage + 1;
         await this.browserPage.bringToFront();
         await this.browserPage.goto(linkquery, { waitUntil: "networkidle2" });
@@ -118,40 +128,37 @@ class ShopeeWeb extends Browser {
         await this.browserPage.bringToFront();
         let displayItems = await this.browserPage.evaluate(async () => {
             await new Promise(r => setTimeout(r, 5000));
-            return Object.entries(document.getElementsByClassName("shopee-search-item-result")[0])[0][1].return.memoizedProps.displayItems
+            return Object.entries(document.querySelector("div[data-qa-locator='general-products']"))[0][1].return.memoizedProps.items
         });
         let data = displayItems.map(element => {
-            return { itemId: element.itemid, idShop: element.shopid }
+            return { itemId: element.itemId, idShop: element.sellerId, nameShop: element.sellerName, from: element.location }
         })
         return data
     }
-    async getInfoItem(itemId, idShop) {
+    async getLinkShop(linkProduct) {
         await this.browserProduct.bringToFront();
-        let link = `https://shopee.vn/${this.keyword}-i.${idShop}.${itemId}`;
-        await this.browserProduct.goto(link, { waitUntil: "networkidle2" });
+        await this.browserProduct.goto(linkProduct, { waitUntil: "networkidle2" });
         let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
-            let phoneDetect = /(\84|0)+(([\d] *){9})/g;
             let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
             await new Promise(r => setTimeout(r, randomnumber * 1000));
-            let shopInfo = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.shopInfo
-            let phoneNumber = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.item.description.match(phoneDetect)
-            return { nameShop: shopInfo.name, linkShop: `https://shopee.vn/${shopInfo.account.username}`, from: shopInfo.shop_location, phoneShop: phoneNumber }
+            let linkShop = Object.entries(document.getElementsByClassName('seller-link')[0])[0][1].memoizedProps.children.props.href.split('?')[0]
+            return linkShop
         }, this.delayMax, this.delayMin);
         return data
     }
-    async getInfoShop(linkShop) {
+    async getPhoneShop(linkShop) {
         await this.browserProduct.bringToFront();
         await this.browserProduct.goto(linkShop, { waitUntil: "networkidle2" });
         let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
-            let phoneDetect = /(\84|0)+(([\d] *){9})/g;
+            let phoneDetect = /(\84|0)+(([\d][.,]*){9})/g;
             let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
             let phoneNumber;
             await new Promise(r => setTimeout(r, randomnumber * 1000));
-            if (document.getElementsByClassName("shop-decoration").length != 0) {
-                phoneNumber = document.getElementsByClassName("shop-decoration")[0].innerText.match(phoneDetect)
-            }
-            if (phoneNumber == null) {
-                phoneNumber = document.querySelector('meta[name="description"]').content.match(phoneDetect)
+
+            phoneNumber = document.getElementsByClassName('pi-layout-container')[2].innerText.match(phoneDetect)
+            if(phoneNumber == null){
+                phoneDetect = /(\84|0)+(([\d] *){9})/g;
+                phoneNumber = document.getElementsByClassName('pi-layout-container')[2].innerText.match(phoneDetect)
             }
             return phoneNumber;
         }, this.delayMax, this.delayMin);
@@ -159,4 +166,4 @@ class ShopeeWeb extends Browser {
     }
 
 }
-module.exports = ShopeeWeb;
+module.exports = LazadaWeb;
