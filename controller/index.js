@@ -2,6 +2,7 @@ const Shopee = require('../core/shopee-web');
 const Tiki = require('../core/tiki-web');
 const Lazada = require('../core/lazada-web');
 const Sendo = require('../core/sendo-web');
+const GoogleMap = require('../core/ggmap-web');
 const Common = require('../core/common');
 const { dialog } = require('electron');
 
@@ -46,12 +47,12 @@ class Controller {
               if (check == -1) shopee.dataList[index].linkProduct.push(linkProduct)
             } else {
               let item = await shopee.getInfoItem(crawlItemsInPage[i].itemId, crawlItemsInPage[i].idShop)
+              if (item == -1) continue
               if (item.phoneShop == null) {
                 item.phoneShop = await shopee.getInfoShop(item.linkShop)
               }
               if (item.phoneShop == null) {
                 item.phoneGoogle = await shopee.searchGoogle(item.nameShop)
-                console.log(item.phoneGoogle)
               }
               shopee.dataList.push({ nameShop: item.nameShop, linkShop: item.linkShop, from: item.from, phoneShop: [item.phoneShop], linkProduct: [linkProduct], idShop: crawlItemsInPage[i].idShop, phoneGoogle: [item.phoneGoogle] })
             }
@@ -214,7 +215,7 @@ class Controller {
         this.sendLogs("notification-logs", "Crawl Page " + sendo.currentPage);
         await Common.waitFor(1000);
         let crawlItemsInPage = await sendo.getItemsInPage()
-        for (let i = (Number(sendo.currentPage)-1) * 60; i < crawlItemsInPage.length; i++) {
+        for (let i = (Number(sendo.currentPage) - 1) * 60; i < crawlItemsInPage.length; i++) {
           if (this.running) {
             this.sendLogs("notification-status", { status: "Đang hoạt động", shopNumber: sendo.dataList.length, pageNumber: sendo.currentPage, productNumber: i });
             let linkProduct = `https://sendo.vn/${keyWordRemoveTons}-${crawlItemsInPage[i].itemId}.html`
@@ -240,7 +241,7 @@ class Controller {
             break;
           }
         }
-        
+
       }
       this.sendLogs("notification-logs", "Stop sendo");
       this.sendLogs("notification-status", { status: "Kết thúc", shopNumber: sendo.dataList.length, pageNumber: sendo.currentPage, productNumber: 0 });
@@ -252,6 +253,59 @@ class Controller {
       this.sendLogs("notification-status", { status: "Lỗi", shopNumber: sendo.dataList.length, pageNumber: sendo.currentPage, productNumber: 0 });
       this.sendLogs("notification-error", err);
       sendo.browser.close();
+    }
+  }
+  async runGoogleMap(keyword, delayMin, delayMax) {
+    this.running = true;
+    let keyWordRemoveTons = Common.removeVietnameseTones(keyword);
+    let keyWord = Common.keyWordForGoogleMap(keyword);
+    const googleMap = new GoogleMap(keyWordRemoveTons, delayMin, delayMax, this.dirFile);
+    try {
+      this.sendLogs("notification-logs", "Open file");
+      await googleMap.readFileExcel()
+      this.sendLogs("notification-logs", "Open chrome");
+      await googleMap.openChrome()
+      await Common.waitFor(5000);
+      this.sendLogs("notification-logs", "Running googleMap");
+      while (this.running && googleMap.listPosition.length > 0) {
+        await googleMap.openPage(keyWord);
+        this.sendLogs("notification-logs", "Crawl Google Map Vị Trí: " + googleMap.position + "- Khu Vực: " + googleMap.local);
+        await googleMap.loadPageSearch();
+        await Common.waitFor(3000);
+        this.sendLogs("notification-status", { status: "Đang hoạt động", shopNumber: googleMap.dataList.length, pageNumber: googleMap.position, productNumber: 0 });
+        let crawlItemsInPage = await googleMap.getItemsInPage()
+        this.sendLogs("notification-status", { status: "Đang hoạt động", shopNumber: googleMap.dataList.length, pageNumber: googleMap.position, productNumber: crawlItemsInPage.length });
+        for (let i = 0; i < crawlItemsInPage.length; i++) {
+          let index = googleMap.dataList.length > 0 ? googleMap.dataList.findIndex(item => item.phoneShop == crawlItemsInPage[i].phoneShop) : -1;
+          if (index == -1) {
+            googleMap.dataList.push({
+              nameShop: crawlItemsInPage[i].nameShop,
+              phoneShop: crawlItemsInPage[i].phoneShop,
+              email: crawlItemsInPage[i].email,
+              website: crawlItemsInPage[i].website,
+              address: crawlItemsInPage[i].address,
+              from: crawlItemsInPage[i].from,
+              local: googleMap.local,
+              position: googleMap.position
+            })
+          }
+
+        }
+        await Common.waitFor(3000);
+        await googleMap.writeFileExcel();
+        let randomnumber = Math.floor(Math.random() * (Number(googleMap.delayMax) - Number(googleMap.delayMin) + 1)) + Number(googleMap.delayMin);
+        await Common.waitFor(randomnumber * 1000);
+      }
+      this.sendLogs("notification-logs", "Stop googleMap");
+      this.sendLogs("notification-status", { status: "Kết thúc", shopNumber: googleMap.dataList.length, pageNumber: googleMap.position, productNumber: 0 });
+      googleMap.browser.close();
+    } catch (err) {
+      console.log(err)
+      dialog.showErrorBox("Lỗi", "Vui lòng kiểm tra");
+      this.sendLogs("notification-logs", "Stop googleMap");
+      this.sendLogs("notification-status", { status: "Lỗi", shopNumber: googleMap.dataList.length, pageNumber: googleMap.position, productNumber: 0 });
+      this.sendLogs("notification-error", err);
+      googleMap.browser.close();
     }
   }
 }

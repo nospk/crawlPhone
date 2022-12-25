@@ -126,36 +126,44 @@ class ShopeeWeb extends Browser {
         return data
     }
     async getInfoItem(itemId, idShop) {
-        await this.browserProduct.bringToFront();
-        let link = `https://shopee.vn/${this.keyword}-i.${idShop}.${itemId}`;
-        await this.browserProduct.goto(link, { waitUntil: "networkidle2" });
-        let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
-            let phoneDetect = /(\84|0)+(([\d] *){9})/g;
-            let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
-            await new Promise(r => setTimeout(r, randomnumber * 1000));
-            let shopInfo = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.shopInfo
-            let phoneNumber = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.item.description.match(phoneDetect)
-            return { nameShop: shopInfo.name, linkShop: `https://shopee.vn/${shopInfo.account.username}`, from: shopInfo.shop_location, phoneShop: phoneNumber }
-        }, this.delayMax, this.delayMin);
-        return data
+        try {
+            await this.browserProduct.bringToFront();
+            let link = `https://shopee.vn/${this.keyword}-i.${idShop}.${itemId}`;
+            await this.browserProduct.goto(link, { waitUntil: "networkidle2" });
+            let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
+                let phoneDetect = /(\84|0)+(([\d] *){9})/g;
+                let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
+                await new Promise(r => setTimeout(r, randomnumber * 1000));
+                let shopInfo = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.shopInfo
+                let phoneNumber = Object.entries(document.getElementsByClassName("page-product__detail")[0])[0][1].memoizedProps.children[0].props.item.description.match(phoneDetect)
+                return { nameShop: shopInfo.name, linkShop: `https://shopee.vn/${shopInfo.account.username}`, from: shopInfo.shop_location, phoneShop: phoneNumber }
+            }, this.delayMax, this.delayMin);
+            return data
+        } catch (e) {
+            return -1
+        }
     }
     async getInfoShop(linkShop) {
-        await this.browserProduct.bringToFront();
-        await this.browserProduct.goto(linkShop, { waitUntil: "networkidle2" });
-        let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
-            let phoneDetect = /(\84|0)+(([\d] *){9})/g;
-            let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
-            let phoneNumber;
-            await new Promise(r => setTimeout(r, randomnumber * 1000));
-            if (document.getElementsByClassName("shop-decoration").length != 0) {
-                phoneNumber = document.getElementsByClassName("shop-decoration")[0].innerText.match(phoneDetect)
-            }
-            if (phoneNumber == null) {
-                phoneNumber = document.querySelector('meta[name="description"]').content.match(phoneDetect)
-            }
-            return phoneNumber;
-        }, this.delayMax, this.delayMin);
-        return data
+        try {
+            await this.browserProduct.bringToFront();
+            await this.browserProduct.goto(linkShop, { waitUntil: "networkidle2" });
+            let data = await this.browserProduct.evaluate(async (delayMax, delayMin) => {
+                let phoneDetect = /(\84|0)+(([\d] *){9})/g;
+                let randomnumber = Math.floor(Math.random() * (Number(delayMax) - Number(delayMin) + 1)) + Number(delayMin);
+                let phoneNumber;
+                await new Promise(r => setTimeout(r, randomnumber * 1000));
+                if (document.getElementsByClassName("shop-decoration").length != 0) {
+                    phoneNumber = document.getElementsByClassName("shop-decoration")[0].innerText.match(phoneDetect)
+                }
+                if (phoneNumber == null) {
+                    phoneNumber = document.querySelector('meta[name="description"]').content.match(phoneDetect)
+                }
+                return phoneNumber;
+            }, this.delayMax, this.delayMin);
+            return data
+        } catch (e) {
+            return null
+        }
     }
 
 }

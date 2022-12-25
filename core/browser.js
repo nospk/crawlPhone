@@ -4,15 +4,15 @@ class Browser {
     browser;
     browserPage;
     browserProduct;
+    WIDTH = 1200;
+    HEIGHT = 1200;
     constructor() {
     }
     async openChrome() {
-        const WIDTH = 800
-        const HEIGHT = 600
         const browser = await puppeteer.launch({
             headless: false,
             defaultViewport: null,
-            args: [`--window-size=${WIDTH},${HEIGHT}`],
+            args: [`--window-size=${this.WIDTH},${this.HEIGHT}`],
             executablePath: chromePaths.chrome
         });
         const pages = await browser.pages();
@@ -25,9 +25,14 @@ class Browser {
 
     }
     async searchGoogle(key) {
-        let link = `https://www.google.com/search?q="${key}"`
+        let link = 'https://www.google.com/search?q="'+ key +'"'
         await this.browserGoogle.bringToFront();
-        await this.browserGoogle.goto(link, { waitUntil: "networkidle2" });
+        try {
+            await this.browserGoogle.goto(link, { waitUntil: "networkidle2" });
+        } catch (err) {
+            await this.browserGoogle.reload({ waitUntil: "networkidle2" });
+        }
+
         let delayMax = 20;
         let delayMin = 5;
         let data = await this.browserGoogle.evaluate(async (delayMax, delayMin) => {

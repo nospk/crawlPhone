@@ -24,7 +24,8 @@ class Common {
         str = str.trim();
         // Remove punctuations
         // Bỏ dấu câu, kí tự đặc biệt
-        str = str.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'|\"|\&|\#|\[|\]|~|\$|_|`|-|{|}|\||\\/g, " ");
+        str = str.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'|\&|\#|\[|\]|~|\$|_|`|-|{|}|\||\\/g, " ");
+        str = str.replace(/\"/g, "");
         return str;
     }
     static getLinkFromName = (str) => {
@@ -53,6 +54,10 @@ class Common {
         str = str.toLowerCase()
 
 
+        return str;
+    }
+    static keyWordForGoogleMap = (str) => {
+        str = str.replace(/\s/g, '+');
         return str;
     }
     static waitFor = async (time) => {
