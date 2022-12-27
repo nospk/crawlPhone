@@ -5,7 +5,7 @@ class Browser {
     browserPage;
     browserProduct;
     WIDTH = 1200;
-    HEIGHT = 1200;
+    HEIGHT = 700;
     constructor() {
     }
     async openChrome() {

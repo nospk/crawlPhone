@@ -90,8 +90,8 @@ class GoogleMap extends Browser {
       }
     });
   }
-  async openPage(keyword) {
-    let getPosition = this.listPosition.shift()
+  async openPage(keyword, index) {
+    let getPosition = this.listPosition[index]
     this.position = getPosition.position
     this.local = getPosition.local
     let linkquery = 'https://www.google.com/maps/search/' + keyword + '/' + getPosition.geo;

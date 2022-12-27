@@ -79,7 +79,7 @@ ipcMain.on("runCrawl", async (event, args) => {
 				controller.runSendo(keyword, delayMin, delayMax, pageMax)
 				break;
 			case "ggmap":
-				controller.runGoogleMap(keyword, delayMin, delayMax)
+				controller.runGoogleMap(keyword, delayMin, delayMax, pageMax)
 				break;
 		}
 	} catch (err) {

@@ -255,7 +255,7 @@ class Controller {
       sendo.browser.close();
     }
   }
-  async runGoogleMap(keyword, delayMin, delayMax) {
+  async runGoogleMap(keyword, delayMin, delayMax, pageMax) {
     this.running = true;
     let keyWordRemoveTons = Common.removeVietnameseTones(keyword);
     let keyWord = Common.keyWordForGoogleMap(keyword);
@@ -267,8 +267,11 @@ class Controller {
       await googleMap.openChrome()
       await Common.waitFor(5000);
       this.sendLogs("notification-logs", "Running googleMap");
-      while (this.running && googleMap.listPosition.length > 0) {
-        await googleMap.openPage(keyWord);
+      let pageIndex = pageMax.split('-');
+      if (pageIndex.length > 1) pageIndex = Number(pageIndex[1]) - 1;
+      else pageIndex = 0
+      while (this.running && pageIndex < googleMap.listPosition.length) {
+        await googleMap.openPage(keyWord, pageIndex);
         this.sendLogs("notification-logs", "Crawl Google Map Vị Trí: " + googleMap.position + "- Khu Vực: " + googleMap.local);
         await googleMap.loadPageSearch();
         await Common.waitFor(3000);
@@ -293,6 +296,8 @@ class Controller {
         }
         await Common.waitFor(3000);
         await googleMap.writeFileExcel();
+        pageIndex = googleMap.position;
+
         let randomnumber = Math.floor(Math.random() * (Number(googleMap.delayMax) - Number(googleMap.delayMin) + 1)) + Number(googleMap.delayMin);
         await Common.waitFor(randomnumber * 1000);
       }
