@@ -106,7 +106,17 @@ class GoogleMap extends Browser {
     await Common.waitFor(3000)
     await this.browserPage.click('[aria-label="Tìm kiếm khu vực này"]')
     await Common.waitFor(3000)
+    let count = 0;
     while (scroll) {
+      count++;
+      if (count > 200) {
+        await this.browserPage.reload({ waitUntil: "networkidle2" });
+        await this.browserPage.mouse.click(this.WIDTH / 1.5, this.HEIGHT / 5, { button: 'right', clickCount: 1 })
+        await this.browserPage.mouse.click(this.WIDTH / 1.5, this.HEIGHT / 5, { button: 'right', clickCount: 1 })
+        await Common.waitFor(3000)
+        await this.browserPage.click('[aria-label="Tìm kiếm khu vực này"]')
+        await Common.waitFor(3000)
+      }
       await this.browserPage.mouse.move(
         this.WIDTH / 8,
         this.HEIGHT / 2
